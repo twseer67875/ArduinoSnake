@@ -1,3 +1,6 @@
+///////////////////////
+//   tw_seer67875   //
+//////////////////////
 #include <U8g2lib.h>
 
 U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
@@ -6,10 +9,16 @@ U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 boolean DebugMod = false;
 
 //Controller DEBUG String
-const char* ControllerUp = "UP";
-const char* ControllerDown = "DOWN";
-const char* ControllerLeft = "LEFT";
-const char* ControllerRight = "RIGHT";
+const char* ControllerDebugUp = "UP";
+const char* ControllerDebugDown = "DOWN";
+const char* ControllerDebugLeft = "LEFT";
+const char* ControllerDebugRight = "RIGHT";
+
+//Controller Play Icon
+const char* ControllerUp = "\u0047";
+const char* ControllerDown = "\u0044";
+const char* ControllerLeft = "\u0046";
+const char* ControllerRight = "\u0045";
 
 //Controller Value
 uint16_t ControllerXValue = 0;
@@ -20,25 +29,40 @@ short score = 0;
 short highest_record = 0;
 
 void setup() {
-  pinMode(7, OUTPUT);
+  initPinMode();
   initOLEDDisplay();
 }
 
 void loop() {
   if(digitalRead(7) == 1){
     DebugMod = !DebugMod;
+    if(DebugMod){
+      digitalWrite(6, HIGH);
+    }
+    else{
+      digitalWrite(6, LOW);
+    }
   }
 
   drawScoreboard();
 }
 
+//init all in & out pin
+void initPinMode(){
+  //Controller SW
+  pinMode(7, OUTPUT);
+  //BuzzerPin
+  pinMode(6, OUTPUT);
+}
+
+//init OLED display
 void initOLEDDisplay(){
-  u8g2.setColorIndex(2);
-  u8g2.setFont(u8g2_font_helvB08_tr);
+  u8g2.setColorIndex(1);
   u8g2.begin();
   u8g2.enableUTF8Print();
 }
 
+//draw OLED display
 void drawScoreboard(){
   u8g2.firstPage();
   do {
@@ -46,6 +70,7 @@ void drawScoreboard(){
   } while (u8g2.nextPage());
 }
 
+//draw OLED display logic part 
 void draw(){
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_helvB08_tr);
@@ -53,23 +78,29 @@ void draw(){
   drawDisplayFont(0, 20, "Record: : ", String(highest_record));
 
   if(DebugMod){
-    drawDisplayFont(70, 10, "DEBUG_ON", "");
-    drawDisplayFont(0, 30, "Controller: : ", getControllerDebugString(getPS2Controller()));
-    drawDisplayFont(0, 40, "ControllerValueX: : ", String(ControllerXValue));
-    drawDisplayFont(0, 50, "ControllerValueY: : ", String(ControllerYValue));
+    drawDisplayFont(70, 10, "DEBUG: ", "ON");
+    drawDisplayFont(0, 30, "Controller Details", "");
+    drawDisplayFont(0, 40, "Controller: : ", getControllerDebugString(getPS2Controller()));
+    drawDisplayFont(0, 50, "ControllerValueX: ", String(ControllerXValue));
+    drawDisplayFont(0, 60, "ControllerValueY: ", String(ControllerYValue));
     return;
   }
 
-  drawDisplayFont(66, 10, "DEBUG_OFF", "");
+  drawDisplayFont(66, 10, "DEBUG: ", "OFF");
+  u8g2.setFont(u8g2_font_open_iconic_arrow_4x_t);
+  drawDisplayFont(45, 60, getControllerIconString(getPS2Controller()), "");
+
   u8g2.sendBuffer();
 }
 
+//draw display font function
 void drawDisplayFont(byte drawX, byte drawY, String message, String value){
   u8g2.setCursor(drawX, drawY);
   u8g2.print(message);
   u8g2.print(value);
 }
 
+//return Controller state
 byte getPS2Controller(){
   ControllerXValue = analogRead(0);
   ControllerYValue = analogRead(1);
@@ -87,7 +118,30 @@ byte getPS2Controller(){
   }
 }
 
+//return Controller Debug direction message
 const char* getControllerDebugString(byte ControllerState){
+  switch(ControllerState){
+    case 1:{
+      return ControllerDebugRight;
+      break;
+    }
+    case 2:{
+      return ControllerDebugLeft;
+      break;
+    }
+    case 3:{
+      return ControllerDebugUp;
+      break;
+    }
+    case 4:{
+      return ControllerDebugDown;
+      break;
+    }
+  }
+}
+
+//return Controller direction icon message
+const char* getControllerIconString(byte ControllerState){
   switch(ControllerState){
     case 1:{
       return ControllerLeft;
