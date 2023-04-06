@@ -2,8 +2,12 @@
 //   tw_seer67875   //
 //////////////////////
 #include <U8g2lib.h>
+#include <Adafruit_NeoPixel.h>
 
 U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+
+//init strip obj
+Adafruit_NeoPixel strip(8, 6, NEO_GRB + NEO_KHZ800);
 
 //DEBUG MODE
 boolean DebugMod = false;
@@ -24,6 +28,12 @@ const char* ControllerRight = "\u0045";
 uint16_t ControllerXValue = 0;
 uint16_t ControllerYValue = 0;
 
+//Controller SW pin
+short ControllerSWPin = 7;
+
+//Debug led pin
+short DebugLedPin = 2;
+
 //Snake score & record
 short score = 0;
 short highest_record = 0;
@@ -31,16 +41,17 @@ short highest_record = 0;
 void setup() {
   initPinMode();
   initOLEDDisplay();
+  initRGBLed();
 }
 
 void loop() {
   if(digitalRead(7) == 1){
     DebugMod = !DebugMod;
     if(DebugMod){
-      digitalWrite(6, HIGH);
+      digitalWrite(DebugLedPin, HIGH);
     }
     else{
-      digitalWrite(6, LOW);
+      digitalWrite(DebugLedPin, LOW);
     }
   }
 
@@ -49,10 +60,8 @@ void loop() {
 
 //init all in & out pin
 void initPinMode(){
-  //Controller SW
-  pinMode(7, OUTPUT);
-  //BuzzerPin
-  pinMode(6, OUTPUT);
+  pinMode(ControllerSWPin, OUTPUT);
+  pinMode(DebugLedPin, OUTPUT);
 }
 
 //init OLED display
@@ -60,6 +69,12 @@ void initOLEDDisplay(){
   u8g2.setColorIndex(1);
   u8g2.begin();
   u8g2.enableUTF8Print();
+}
+
+//init RGB Led
+void initRGBLed(){
+  strip.begin();
+  strip.show();
 }
 
 //draw OLED display
