@@ -67,7 +67,7 @@ void setup() {
   initRGBLed();
   initSnakeGame();
   lc.setLed(randomFood.piece, randomFood.x, randomFood.z, true);
-  ControllerLiveState = getPS2Controller();
+  
 }
 
 void loop() {
@@ -80,7 +80,6 @@ void loop() {
       digitalWrite(DebugLedPin, LOW);
     }
   }
-
   ControllerLiveState = getPS2Controller();
 
   moveSnake();
