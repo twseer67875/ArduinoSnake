@@ -67,7 +67,7 @@ void setup() {
   initRGBLed();
   initSnakeGame();
   lc.setLed(randomFood.piece, randomFood.x, randomFood.z, true);
-  
+  ControllerLiveState = getPS2Controller();
 }
 
 void loop() {
@@ -80,7 +80,6 @@ void loop() {
       digitalWrite(DebugLedPin, LOW);
     }
   }
-  ControllerLiveState = getPS2Controller();
 
   moveSnake();
   drawSnake();
@@ -223,11 +222,13 @@ void initSnakeGame(){
   
   initRandomFood();
 
-  struct snake snakePath1 = {1, 3, 3};
+  struct snake snakePath1 = {1, 3, 5};
   struct snake snakePath2 = {1, 3, 4};
+  struct snake snakePath3 = {1, 3, 3};
 
   snakePathSet.push_back(snakePath1);
   snakePathSet.push_back(snakePath2);
+  snakePathSet.push_back(snakePath3);
 
 }
 
@@ -249,53 +250,69 @@ void drawSnake(){
 }
 
 void moveSnake(){
-  for (int16_t i = 0; i != snakePathSet.size(); i++) {
-    int8_t piece = snakePathSet[i].piece;
-    int8_t x = snakePathSet[i].x;
-    int8_t z = snakePathSet[i].z;
-    switch(ControllerLiveState){
-      case 1:{
-        x = x - 1;
-        if(x == -1){
-          x = 7;
-        }
-        snakePathSet[i].x = x;
-        break;
+  moveSnakeHead();
+  snakePathSet.erase(snakePathSet.begin());
+}
+
+void moveSnakeHead(){
+  int8_t piece = snakePathSet.back().piece;
+  int8_t x = snakePathSet.back().x;
+  int8_t z = snakePathSet.back().z;
+  
+  if(randomFood.piece == piece && randomFood.x == x && randomFood.z == z){
+    initRandomFood();
+    score = score + 1;
+    initSankeTmp(piece, x ,z);
+  }
+
+  switch(ControllerLiveState){
+    case 1:{
+      x = x - 1;
+      if(x == -1){
+        x = 7;
       }
-      case 2:{
-        x = x + 1;
-        if(x == 8){
-          x = 0;
-        }
-        snakePathSet[i].x = x;
-        break;
+      initSankeTmp(piece, x, z);
+      break;
+    }
+    case 2:{
+      x = x + 1;
+      if(x == 8){
+        x = 0;
       }
-      case 3:{
-        z = z - 1;
-        if(z == -1){
-          piece = piece + 1;
-          if(piece == 4){
+      initSankeTmp(piece, x, z);
+      break;
+    }
+    case 3:{
+      z = z - 1;
+      if(z == -1){
+        piece = piece + 1;
+        if(piece == 4){
             piece = 0;
-          }
-          z = 7;
         }
-        snakePathSet[i].z = z;
-        snakePathSet[i].piece = piece;
-        break;
+        z = 7;
       }
-      case 4:{
-        z = z + 1;
-        if(z == 8){
-          piece = piece - 1;
-          if(piece == -1){
-            piece = 3;
-          }
-          z = 0;
+      initSankeTmp(piece, x, z);
+      break;
+    }
+    case 4:{
+      z = z + 1;
+      if(z == 8){
+        piece = piece - 1;
+        if(piece == -1){
+          piece = 3;
         }
-        snakePathSet[i].z = z;
-        snakePathSet[i].piece = piece;
-        break;
+        z = 0;
       }
+      initSankeTmp(piece, x, z);
+      break;
     }
   }
+}
+
+snake initSankeTmp(int piece, int x, int z){
+    snake tmp;
+    tmp.piece = piece;
+    tmp.x = x;
+    tmp.z = z;
+    snakePathSet.push_back(tmp);
 }
