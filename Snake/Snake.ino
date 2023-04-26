@@ -42,6 +42,8 @@ int8_t ControllerSWPin = 7;
 //Debug led pin
 int8_t DebugLedPin = 2;
 
+int8_t BuzzerPin = 4;
+
 //Snake score & record
 short score = 0;
 short highest_record = 0;
@@ -80,6 +82,7 @@ void loop() {
       digitalWrite(DebugLedPin, LOW);
     }
   }
+  
   ControllerLiveState = getPS2Controller();
 
   moveSnake();
@@ -92,6 +95,7 @@ void loop() {
 void initPinMode(){
   pinMode(ControllerSWPin, OUTPUT);
   pinMode(DebugLedPin, OUTPUT);
+  pinMode(BuzzerPin, OUTPUT);
 }
 
 //init OLED display
@@ -264,6 +268,9 @@ void moveSnakeHead(){
     initRandomFood();
     score = score + 1;
     initSankeTmp(piece, x ,z);
+    digitalWrite(BuzzerPin, HIGH);
+    delay(50);
+    digitalWrite(BuzzerPin, LOW);
   }
 
   switch(ControllerLiveState){
