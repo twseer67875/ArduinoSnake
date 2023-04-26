@@ -3,6 +3,12 @@
 //////////////////////
 #include <U8g2lib.h>
 #include <Adafruit_NeoPixel.h>
+#include <LedControl.h>
+#include <ArduinoSTL.h>
+#include <vector>
+
+//init MAX7219 LedControl obj
+LedControl lc = LedControl(12,11,10,4);
 
 U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
@@ -13,35 +19,55 @@ Adafruit_NeoPixel strip(8, 6, NEO_GRB + NEO_KHZ800);
 boolean DebugMod = false;
 
 //Controller DEBUG String
-const char* ControllerDebugUp = "UP";
-const char* ControllerDebugDown = "DOWN";
-const char* ControllerDebugLeft = "LEFT";
-const char* ControllerDebugRight = "RIGHT";
+char ControllerDebugUp[] = "UP";
+char ControllerDebugDown[] = "DOWN";
+char ControllerDebugLeft[] = "LEFT";
+char ControllerDebugRight[] = "RIGHT";
 
 //Controller Play Icon
-const char* ControllerUp = "\u0047";
-const char* ControllerDown = "\u0044";
-const char* ControllerLeft = "\u0046";
-const char* ControllerRight = "\u0045";
+char ControllerUp[] = "\u0047";
+char ControllerDown[] = "\u0044";
+char ControllerLeft[] = "\u0046";
+char ControllerRight[] = "\u0045";
+
+int8_t ControllerLiveState = 0;
 
 //Controller Value
-uint16_t ControllerXValue = 0;
-uint16_t ControllerYValue = 0;
+int16_t ControllerXValue = 0;
+int16_t ControllerYValue = 0;
 
 //Controller SW pin
-short ControllerSWPin = 7;
+int8_t ControllerSWPin = 7;
 
 //Debug led pin
-short DebugLedPin = 2;
+int8_t DebugLedPin = 2;
 
 //Snake score & record
 short score = 0;
 short highest_record = 0;
 
+struct food {
+  int8_t piece;
+  int8_t x;
+  int8_t z; 
+} randomFood;
+
+struct snake {
+  int8_t piece;
+  int8_t x;
+  int8_t z; 
+};
+
+std::vector<snake> snakePathSet;
+
 void setup() {
+  Serial.begin(9600);
   initPinMode();
   initOLEDDisplay();
   initRGBLed();
+  initSnakeGame();
+  lc.setLed(randomFood.piece, randomFood.x, randomFood.z, true);
+  
 }
 
 void loop() {
@@ -54,6 +80,10 @@ void loop() {
       digitalWrite(DebugLedPin, LOW);
     }
   }
+  ControllerLiveState = getPS2Controller();
+
+  moveSnake();
+  drawSnake();
 
   drawScoreboard();
 }
@@ -95,7 +125,7 @@ void draw(){
   if(DebugMod){
     drawDisplayFont(70, 10, "DEBUG: ", "ON");
     drawDisplayFont(0, 30, "Controller Details", "");
-    drawDisplayFont(0, 40, "Controller: : ", getControllerDebugString(getPS2Controller()));
+    drawDisplayFont(0, 40, "Controller: : ", getControllerDebugString(ControllerLiveState));
     drawDisplayFont(0, 50, "ControllerValueX: ", String(ControllerXValue));
     drawDisplayFont(0, 60, "ControllerValueY: ", String(ControllerYValue));
     return;
@@ -103,7 +133,7 @@ void draw(){
 
   drawDisplayFont(66, 10, "DEBUG: ", "OFF");
   u8g2.setFont(u8g2_font_open_iconic_arrow_4x_t);
-  drawDisplayFont(45, 60, getControllerIconString(getPS2Controller()), "");
+  drawDisplayFont(45, 60, getControllerIconString(ControllerLiveState), "");
 
   u8g2.sendBuffer();
 }
@@ -116,7 +146,7 @@ void drawDisplayFont(byte drawX, byte drawY, String message, String value){
 }
 
 //return Controller state
-byte getPS2Controller(){
+int8_t getPS2Controller(){
   ControllerXValue = analogRead(0);
   ControllerYValue = analogRead(1);
   if(ControllerXValue < 400) {
@@ -134,7 +164,7 @@ byte getPS2Controller(){
 }
 
 //return Controller Debug direction message
-const char* getControllerDebugString(byte ControllerState){
+const char* getControllerDebugString(int8_t ControllerState){
   switch(ControllerState){
     case 1:{
       return ControllerDebugRight;
@@ -156,7 +186,7 @@ const char* getControllerDebugString(byte ControllerState){
 }
 
 //return Controller direction icon message
-const char* getControllerIconString(byte ControllerState){
+const char* getControllerIconString(int8_t ControllerState){
   switch(ControllerState){
     case 1:{
       return ControllerLeft;
@@ -173,6 +203,99 @@ const char* getControllerIconString(byte ControllerState){
     case 4:{
       return ControllerDown;
       break;
+    }
+  }
+}
+
+void initLEDMatrix(){
+  for(int8_t i = 0; i != 4; i++){
+    lc.shutdown(i, false);
+    lc.setIntensity(i, 8);
+    lc.clearDisplay(i);
+  }
+}
+
+//init SnakeGame log
+void initSnakeGame(){
+  initLEDMatrix();
+  
+  delay(100);
+  
+  initRandomFood();
+
+  struct snake snakePath1 = {1, 3, 3};
+  struct snake snakePath2 = {1, 3, 4};
+
+  snakePathSet.push_back(snakePath1);
+  snakePathSet.push_back(snakePath2);
+
+}
+
+void initRandomFood(){
+  randomSeed(analogRead(A3));
+  randomFood.piece = random(4);
+  randomFood.x = random(8);
+  randomFood.z = random(8);
+}
+
+void drawSnake(){
+  for(int8_t i = 0; i != 4; i++){
+    lc.clearDisplay(i);
+  }
+  for (auto const& snake_loc : snakePathSet) {
+    lc.setLed(snake_loc.piece, snake_loc.x, snake_loc.z, true);
+  }
+  lc.setLed(randomFood.piece, randomFood.x, randomFood.z, true);
+}
+
+void moveSnake(){
+  for (int16_t i = 0; i != snakePathSet.size(); i++) {
+    int8_t piece = snakePathSet[i].piece;
+    int8_t x = snakePathSet[i].x;
+    int8_t z = snakePathSet[i].z;
+    switch(ControllerLiveState){
+      case 1:{
+        x = x - 1;
+        if(x == -1){
+          x = 7;
+        }
+        snakePathSet[i].x = x;
+        break;
+      }
+      case 2:{
+        x = x + 1;
+        if(x == 8){
+          x = 0;
+        }
+        snakePathSet[i].x = x;
+        break;
+      }
+      case 3:{
+        z = z - 1;
+        if(z == -1){
+          piece = piece + 1;
+          if(piece == 4){
+            piece = 0;
+          }
+          z = 7;
+        }
+        snakePathSet[i].z = z;
+        snakePathSet[i].piece = piece;
+        break;
+      }
+      case 4:{
+        z = z + 1;
+        if(z == 8){
+          piece = piece - 1;
+          if(piece == -1){
+            piece = 3;
+          }
+          z = 0;
+        }
+        snakePathSet[i].z = z;
+        snakePathSet[i].piece = piece;
+        break;
+      }
     }
   }
 }
