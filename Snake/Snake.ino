@@ -81,6 +81,8 @@ void loop() {
     }
   }
 
+  ControllerLiveState = getPS2Controller();
+
   moveSnake();
   drawSnake();
 
